@@ -95,7 +95,7 @@ class NonAuthUserTestCases(TestCase):
         self.assertEqual(403, rv.status_code)
 
     def test_users_get_invalid_auth(self):
-        rv = self.app.delete('/admin/users/',
+        rv = self.app.get('/admin/users/',
                 headers = {'Authorization': 'invalid'})
         self.assertEqual(403, rv.status_code)
         
