@@ -15,6 +15,7 @@ contact_fields = {
     'last_name': fields.String,
     'email': fields.String,
     'phone': fields.String,
+    # TODO Figure out why this causes an BuildException when trying to generate return URIs
     #'uri': NDBUrl('/user/contact/')
 }
 

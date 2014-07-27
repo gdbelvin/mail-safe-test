@@ -293,8 +293,6 @@ class UserAuthContactTestCases(TestCase):
         self.assertEqual('contact1@example.com', data['email'])
         self.assertEqual('1234567890', data['phone'])
 
-    # need tests for put but need to solve post problem first
-
     def test_contact_list_get(self):
         rv = self.app.get('/contacts/',
             headers = {'Authorization': UserAuthContactTestCases.user1_token})
