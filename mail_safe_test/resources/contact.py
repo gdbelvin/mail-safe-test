@@ -95,8 +95,8 @@ class ContactAPI(Resource):
     def put(self, contact_id):
         if self.put_parser is None:
             self.put_parser = parser.copy()
-            self.put_parser.replace_argument('email', type = str, required = True, location = 'json')
-            self.put_parser.replace_argument('phone', type = str, required = True, location = 'json')
+            self.put_parser.replace_argument('email', type = str, required = False, location = 'json')
+            self.put_parser.replace_argument('phone', type = str, required = False, location = 'json')
         user = current_user()
         if user is None:
             abort(404)

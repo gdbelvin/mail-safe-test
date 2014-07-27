@@ -182,7 +182,7 @@ class UserAuthContactTestCases(TestCase):
         contact.put()
 
         contact_fields = {
-            'id': '12345',
+            'id': '00000',
             'first_name': "First2",
             'last_name': "Contact2",
             'email': "contact2@example.com",
@@ -209,7 +209,16 @@ class UserAuthContactTestCases(TestCase):
         self.assertEqual('Contact1', data['last_name'])
         self.assertEqual('contact1@example.com', data['email'])
         self.assertEqual('1234567890', data['phone'])
+        
+    def test_contact_id_get_other_user(self):
+        rv = self.app.get('/contact/00000/',
+            headers={'Authorization': UserAuthContactTestCases.user1_token})
+        self.assertEqual(404, rv.status_code)
 
+        rv = self.app.get('/contact/12345/',
+            headers={'Authorization': UserAuthContactTestCases.user2_token})
+        self.assertEqual(404, rv.status_code)
+        
     def test_contact_id_none_delete(self):
         rv = self.app.delete('/contact/25/',
             headers={'Authorization': UserAuthContactTestCases.user1_token})
@@ -268,6 +277,21 @@ class UserAuthContactTestCases(TestCase):
         verify_user_contact_count(self, UserAuthContactTestCases.user1_id, 1)
 
     # maybe add tests to verify the validity of email and phone? Not in the API currently though
+        
+    def test_contact_put(self):
+        rv = self.app.put('/contact/12345/',
+            data='{"first_name": "Changed"}',
+            content_type='application/json',
+            headers = {'Authorization': UserAuthContactTestCases.user1_token})
+        self.assertEqual(200, rv.status_code)
+        
+        # BUG (gdbelvin 7/26/14): This verification currently fails because the request parsing code
+        # assigns None to all unspecified request values, updating all entries with None in the DB.
+        data = loads(rv.data)
+        self.assertEqual('Changed', data['first_name'])
+        self.assertEqual('Contact1', data['last_name'], "Gary needs to fix request parsing for PUT")
+        self.assertEqual('contact1@example.com', data['email'])
+        self.assertEqual('1234567890', data['phone'])
 
     # need tests for put but need to solve post problem first
 
