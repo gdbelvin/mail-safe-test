@@ -107,7 +107,7 @@ class ContactAPI(Resource):
         user = current_user()
         if user is None:
             abort(404)
-        contact = ContactModel.query_by_id(user, contact_id)
+        contact = ContactModel.query_by_id(user.key.id(), contact_id)
         if contact is None:
             abort(404)
         contact.key.delete()

@@ -59,22 +59,23 @@ class AuthUserContactTestCases(TestCase):
     	self.testbed.deactivate()
 
     def test_contact_id_none_get(self):
-        rv = self.app.get('/user/contact/25/',
+        rv = self.app.get('/contact/25/',
             headers={'Authorization': AuthUserContactTestCases.user_token})
         self.assertEqual(404, rv.status_code)
 
     def test_contact_id_get(self):
-        rv = self.app.get('/user/contact/12345/',
+        rv = self.app.get('/contact/12345/',
             headers={'Authorization': AuthUserContactTestCases.user_token})
         self.assertEqual(200, rv.status_code)
 
     def test_contact_id_none_delete(self):
-        rv = self.app.delete('/contact/25/')
+        rv = self.app.delete('/contact/25/',
+            headers={'Authorization': AuthUserContactTestCases.user_token})
         self.assertEqual(404, rv.status_code)
     
     def test_contact_post(self):
         verify_contact_count(self, 1)
-        rv = self.app.post('/user/contact/00101010/',
+        rv = self.app.post('/contact/00101010/',
                 data='{"first_name": "Best", "last_name": "Friend", "email": "bestfriend@test.com", "phone": "1234567890"}',
                 content_type='application/json',
                 headers = {'Authorization': AuthUserContactTestCases.user_token})
@@ -83,7 +84,7 @@ class AuthUserContactTestCases(TestCase):
     
     def test_contact_post_duplicate(self):
         verify_contact_count(self, 1)
-        rv = self.app.post('/user/contact/12345/',
+        rv = self.app.post('/contact/12345/',
                  data='{"first_name": "Best", "last_name": "Friend", "email": "bestfriend@test.com", "phone": "1234567890"}',
                  content_type='application/json',
                  headers = {'Authorization': AuthUserContactTestCases.user_token})
@@ -103,7 +104,7 @@ class AuthUserContactTestCases(TestCase):
 
     # # need tests for put but need to solve post problem first
     def test_contact_list_get(self):
-         rv = self.app.get('/user/contacts/',
+         rv = self.app.get('/contacts/',
              headers = {'Authorization': AuthUserContactTestCases.user_token})
          self.assertEqual(200, rv.status_code)
          data = loads(rv.data)
