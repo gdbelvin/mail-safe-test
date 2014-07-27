@@ -11,7 +11,7 @@ from json import loads
 from unittest import TestCase
 from mail_safe_test import app
 from mail_safe_test.auth import UserModel
-from mail_safe_test.resources.contact import ContactList, Contact, ContactModel
+from mail_safe_test.resources.contact import ContactListAPI, ContactAPI, ContactModel
 
 def common_setUp(self):
     # Flask apps testing. See: http://flask.pocoo.org/docs/testing/
@@ -45,41 +45,50 @@ class AuthUserContactTestCases(TestCase):
         user = UserModel(**args)
         user.put()
 
+        contact_fields = {
+            'id': '12345',
+            'first_name': "First",
+            'last_name': "Contact",
+            'email': "contact@example.com",
+            'phone': "1234567890"
+        }
+        contact = ContactModel(parent=ndb.Key(UserModel, user.key.id()), **contact_fields)
+        contact.put()
+
     def tearDown(self):
     	self.testbed.deactivate()
 
-    # def test_contact_none_put(self):
-    #     rv = self.app.put('/contact/25/',
-    #         data='{"email": "changed@example.com"}',
-    #         content_type='application/json')
-    #     self.assertEqual(404, rv.status_code) 
+    def test_contact_id_none_get(self):
+        rv = self.app.get('/user/contact/25/',
+            headers={'Authorization': AuthUserContactTestCases.user_token})
+        self.assertEqual(404, rv.status_code)
 
-    # def test_contact_id_none_get(self):
-    #     rv = self.app.get('/contact/25/',
-    #         headers={'Authorization':AuthUserContactTestCases.user_token})
-    #     self.assertEqual(404, rv.status_code)
+    def test_contact_id_get(self):
+        rv = self.app.get('/user/contact/12345/',
+            headers={'Authorization': AuthUserContactTestCases.user_token})
+        self.assertEqual(200, rv.status_code)
 
-    # def test_contact_id_none_delete(self):
-    #     rv = self.app.delete('/contact/25/')
-    #     self.assertEqual(404, rv.status_code)
-
+    def test_contact_id_none_delete(self):
+        rv = self.app.delete('/contact/25/')
+        self.assertEqual(404, rv.status_code)
+    
     def test_contact_post(self):
-        verify_contact_count(self, 0)
-        rv = self.app.post('/contact/',
-                data='{"first_name": "Best", "last_name": "Friend", "email": "bestfriend@test.com", "phone": "1234567891"}',
+        verify_contact_count(self, 1)
+        rv = self.app.post('/user/contact/00101010/',
+                data='{"first_name": "Best", "last_name": "Friend", "email": "bestfriend@test.com", "phone": "1234567890"}',
                 content_type='application/json',
                 headers = {'Authorization': AuthUserContactTestCases.user_token})
         self.assertEqual(200, rv.status_code)
+        verify_contact_count(self, 2)
+    
+    def test_contact_post_duplicate(self):
         verify_contact_count(self, 1)
-        
-    # def test_contact_post_duplicate(self):
-    #     # verify_contact_count(self, 1)
-    #     rv = self.app.post('/contact/',
-    #             data='{"first_name": "Best", "last_name": "Friend", "email": "bestfriend@test.com", "phone": "1234567891"}',
-    #             content_type='application/json',
-    #             headers = {'Authorization': AuthUserContactTestCases.user_token})
-    #     self.assertEqual(404, rv.status_code)
-    #     # verify_contact_count(self, 1)
+        rv = self.app.post('/user/contact/12345/',
+                 data='{"first_name": "Best", "last_name": "Friend", "email": "bestfriend@test.com", "phone": "1234567890"}',
+                 content_type='application/json',
+                 headers = {'Authorization': AuthUserContactTestCases.user_token})
+        self.assertEqual(200, rv.status_code)
+        verify_contact_count(self, 1)
 
     # def test_contact_post_missing_email(self):
     #     rv = self.app.post('/contact/',
@@ -93,17 +102,12 @@ class AuthUserContactTestCases(TestCase):
     # # maybe add tests to verify the validity of email and phone? Not in the API currently though
 
     # # need tests for put but need to solve post problem first
-
-    # def test_contact_list_get(self):
-    #     rv = self.app.get('/contacts/',
-    #         headers = {'Authorization': AuthUserContactTestCases.user_token})
-    #     self.assertEqual(200, rv.status_code)
-    #     data = loads(rv.data)
-    #     self.assertEqual('Best', data['contacts'][0]['first_name'])
-    #     self.assertEqual('Friend', data['contacts'][0]['last_name'])
-    #     self.assertEqual('bestfriend@test.com', data['contacts'][0]['email'])
-    #     self.assertEqual('1234567891', data['contacts'][0]['phone'])
-
-
-        
-
+    def test_contact_list_get(self):
+         rv = self.app.get('/user/contacts/',
+             headers = {'Authorization': AuthUserContactTestCases.user_token})
+         self.assertEqual(200, rv.status_code)
+         data = loads(rv.data)
+         self.assertEqual('First', data['contacts'][0]['first_name'])
+         self.assertEqual('Contact', data['contacts'][0]['last_name'])
+         self.assertEqual('contact@example.com', data['contacts'][0]['email'])
+         self.assertEqual('1234567890', data['contacts'][0]['phone'])
