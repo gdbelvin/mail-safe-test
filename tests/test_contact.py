@@ -39,10 +39,10 @@ class NonAuthContactTestCases(TestCase):
         common_setUp(self)
 
         # Provision a valid user
-        AuthUserContactTestCases.user_id = '111111111111111111111'
-        AuthUserContactTestCases.user_token = "valid_user"
+        NonAuthContactTestCases.user_id = '111111111111111111111'
+        NonAuthContactTestCases.user_token = "valid_user"
 
-        args = {"id": AuthUserContactTestCases.user_id,
+        args = {"id": NonAuthContactTestCases.user_id,
                 "first_name": "Testy",
                 "last_name": "McTest",
                 "email": "user@example.com" }
@@ -144,26 +144,26 @@ class NonAuthContactTestCases(TestCase):
             headers = {'Authorization': 'invalid'})
         self.assertEqual(404, rv.status_code)
 
-class AuthUserContactTestCases(TestCase):
+class UserAuthContactTestCases(TestCase):
 
     def setUp(self):
         common_setUp(self)
 
         # Provision two valid users
-        AuthUserContactTestCases.user1_id = '111111111111111111111'
-        AuthUserContactTestCases.user1_token = "valid_user"
+        UserAuthContactTestCases.user1_id = '111111111111111111111'
+        UserAuthContactTestCases.user1_token = "valid_user"
 
-        AuthUserContactTestCases.user2_id = '111111111111111111112'
-        AuthUserContactTestCases.user2_token = "valid_user2"
+        UserAuthContactTestCases.user2_id = '111111111111111111112'
+        UserAuthContactTestCases.user2_token = "valid_user2"
 
-        args = {"id": AuthUserContactTestCases.user1_id,
+        args = {"id": UserAuthContactTestCases.user1_id,
                 "first_name": "Testy",
                 "last_name": "McTest",
                 "email": "user@example.com" }
         user = UserModel(**args)
         user.put()
         
-        args = {"id": AuthUserContactTestCases.user2_id,
+        args = {"id": UserAuthContactTestCases.user2_id,
                 "first_name": "Testy",
                 "last_name": "McTest",
                 "email": "user@example.com" }
@@ -178,7 +178,7 @@ class AuthUserContactTestCases(TestCase):
             'email': "contact1@example.com",
             'phone': "1234567890"
         }
-        contact = ContactModel(parent=ndb.Key(UserModel, AuthUserContactTestCases.user1_id), **contact_fields)
+        contact = ContactModel(parent=ndb.Key(UserModel, UserAuthContactTestCases.user1_id), **contact_fields)
         contact.put()
 
         contact_fields = {
@@ -188,7 +188,7 @@ class AuthUserContactTestCases(TestCase):
             'email': "contact2@example.com",
             'phone': "1234567890"
         }
-        contact = ContactModel(parent=ndb.Key(UserModel, AuthUserContactTestCases.user2_id), **contact_fields)
+        contact = ContactModel(parent=ndb.Key(UserModel, UserAuthContactTestCases.user2_id), **contact_fields)
         contact.put()
 
     def tearDown(self):
@@ -196,68 +196,96 @@ class AuthUserContactTestCases(TestCase):
 
     def test_contact_id_none_get(self):
         rv = self.app.get('/contact/25/',
-            headers={'Authorization': AuthUserContactTestCases.user1_token})
+            headers={'Authorization': UserAuthContactTestCases.user1_token})
         self.assertEqual(404, rv.status_code)
 
     def test_contact_id_get(self):
         rv = self.app.get('/contact/12345/',
-            headers={'Authorization': AuthUserContactTestCases.user1_token})
+            headers={'Authorization': UserAuthContactTestCases.user1_token})
         self.assertEqual(200, rv.status_code)
+
+        data = loads(rv.data)
+        self.assertEqual('First1', data['first_name'])
+        self.assertEqual('Contact1', data['last_name'])
+        self.assertEqual('contact1@example.com', data['email'])
+        self.assertEqual('1234567890', data['phone'])
 
     def test_contact_id_none_delete(self):
         rv = self.app.delete('/contact/25/',
-            headers={'Authorization': AuthUserContactTestCases.user1_token})
+            headers={'Authorization': UserAuthContactTestCases.user1_token})
         self.assertEqual(404, rv.status_code)
     
     def test_contact_post(self):
         verify_contact_count(self, 2)
-        verify_user_contact_count(self, AuthUserContactTestCases.user1_id, 1)
+        verify_user_contact_count(self, UserAuthContactTestCases.user1_id, 1)
         rv = self.app.post('/contact/00101010/',
                 data='{"first_name": "Best", "last_name": "Friend", "email": "bestfriend@test.com", "phone": "1234567890"}',
                 content_type='application/json',
-                headers = {'Authorization': AuthUserContactTestCases.user1_token})
+                headers = {'Authorization': UserAuthContactTestCases.user1_token})
         self.assertEqual(200, rv.status_code)
+        
+        data = loads(rv.data)
+        self.assertEqual('Best', data['first_name'])
+        self.assertEqual('Friend', data['last_name'])
+        self.assertEqual('bestfriend@test.com', data['email'])
+        self.assertEqual('1234567890', data['phone'])
+
         verify_contact_count(self, 3)
-        verify_user_contact_count(self, AuthUserContactTestCases.user1_id, 2)
+        verify_user_contact_count(self, UserAuthContactTestCases.user1_id, 2)
     
     def test_contact_post_duplicate(self):
         verify_contact_count(self, 2)
-        verify_user_contact_count(self, AuthUserContactTestCases.user1_id, 1)
+        verify_user_contact_count(self, UserAuthContactTestCases.user1_id, 1)
         rv = self.app.post('/contact/12345/',
                  data='{"first_name": "Best", "last_name": "Friend", "email": "bestfriend@test.com", "phone": "1234567890"}',
                  content_type='application/json',
-                 headers = {'Authorization': AuthUserContactTestCases.user1_token})
-        self.assertEqual(200, rv.status_code)
+                 headers = {'Authorization': UserAuthContactTestCases.user1_token})
+        self.assertEqual(409, rv.status_code)
+
         verify_contact_count(self, 2)
-        verify_user_contact_count(self, AuthUserContactTestCases.user1_id, 1)
+        verify_user_contact_count(self, UserAuthContactTestCases.user1_id, 1)
 
-    # def test_contact_post_missing_email(self):
-    #     rv = self.app.post('/contact/',
-    #             data='{"first_name": "Best", "last_name": "Friend", "phone": "1234567891"}',
-    #             content_type='application/json',
-    #             headers = {'Authorization': AuthUserContactTestCases.user1_token})
-    #     self.assertEqual(404, rv.status_code)
-    #     # verify_contact_count(self, 1)
+    def test_contact_post_missing_email(self):
+        verify_contact_count(self, 2)
+        verify_user_contact_count(self, UserAuthContactTestCases.user1_id, 1)
+        rv = self.app.post('/contact/1923981263/',
+                data='{"first_name": "Best", "last_name": "Friend", "phone": "1234567891"}',
+                content_type='application/json',
+                headers = {'Authorization': UserAuthContactTestCases.user1_token})
+        self.assertEqual(400, rv.status_code)
+        verify_contact_count(self, 2)
+        verify_user_contact_count(self, UserAuthContactTestCases.user1_id, 1)
 
+    def test_contact_post_missing_phone(self):
+        verify_contact_count(self, 2)
+        verify_user_contact_count(self, UserAuthContactTestCases.user1_id, 1)
+        rv = self.app.post('/contact/1923981263/',
+                data='{"first_name": "Best", "last_name": "Friend", "email": "bestfriend@test.com"}',
+                content_type='application/json',
+                headers = {'Authorization': UserAuthContactTestCases.user1_token})
+        self.assertEqual(400, rv.status_code)
+        verify_contact_count(self, 2)
+        verify_user_contact_count(self, UserAuthContactTestCases.user1_id, 1)
 
-    # # maybe add tests to verify the validity of email and phone? Not in the API currently though
+    # maybe add tests to verify the validity of email and phone? Not in the API currently though
 
-    # # need tests for put but need to solve post problem first
+    # need tests for put but need to solve post problem first
+
     def test_contact_list_get(self):
-         rv = self.app.get('/contacts/',
-             headers = {'Authorization': AuthUserContactTestCases.user1_token})
-         self.assertEqual(200, rv.status_code)
-         data = loads(rv.data)
-         self.assertEqual('First1', data['contacts'][0]['first_name'])
-         self.assertEqual('Contact1', data['contacts'][0]['last_name'])
-         self.assertEqual('contact1@example.com', data['contacts'][0]['email'])
-         self.assertEqual('1234567890', data['contacts'][0]['phone'])
+        rv = self.app.get('/contacts/',
+            headers = {'Authorization': UserAuthContactTestCases.user1_token})
+        self.assertEqual(200, rv.status_code)
+        data = loads(rv.data)
+        self.assertEqual('First1', data['contacts'][0]['first_name'])
+        self.assertEqual('Contact1', data['contacts'][0]['last_name'])
+        self.assertEqual('contact1@example.com', data['contacts'][0]['email'])
+        self.assertEqual('1234567890', data['contacts'][0]['phone'])
 
-         rv = self.app.get('/contacts/',
-             headers = {'Authorization': AuthUserContactTestCases.user2_token})
-         self.assertEqual(200, rv.status_code)
-         data = loads(rv.data)
-         self.assertEqual('First2', data['contacts'][0]['first_name'])
-         self.assertEqual('Contact2', data['contacts'][0]['last_name'])
-         self.assertEqual('contact2@example.com', data['contacts'][0]['email'])
-         self.assertEqual('1234567890', data['contacts'][0]['phone'])
+        rv = self.app.get('/contacts/',
+            headers = {'Authorization': UserAuthContactTestCases.user2_token})
+        self.assertEqual(200, rv.status_code)
+        data = loads(rv.data)
+        self.assertEqual('First2', data['contacts'][0]['first_name'])
+        self.assertEqual('Contact2', data['contacts'][0]['last_name'])
+        self.assertEqual('contact2@example.com', data['contacts'][0]['email'])
+        self.assertEqual('1234567890', data['contacts'][0]['phone'])

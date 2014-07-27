@@ -80,6 +80,11 @@ class ContactAPI(Resource):
         user = current_user()
         if user is None:
             abort(404)
+            
+        contact = ContactModel.query_by_id(user.key.id(), contact_id)
+        if contact is not None:
+            abort(409) # Don't allow POST to update Contact values
+        
         args = self.post_parser.parse_args()
         args['id'] = contact_id
         contact = ContactModel(parent=ndb.Key(UserModel, user.key.id()), **args)
