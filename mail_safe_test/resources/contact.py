@@ -15,8 +15,7 @@ contact_fields = {
     'last_name': fields.String,
     'email': fields.String,
     'phone': fields.String,
-    # TODO Figure out why this causes an BuildException when trying to generate return URIs
-    #'uri': NDBUrl('/user/contact/')
+    'uri': NDBUrl('/user/contact/')
 }
 
 parser = reqparse.RequestParser()
@@ -33,19 +32,37 @@ class ContactModel(ndb.Model):
     created = ndb.DateTimeProperty(auto_now_add=True)
 
     @classmethod
-    def query_by_id(cls, user_id, contact_id):
-        contact_key = ndb.Key(UserModel, user_id, ContactModel, contact_id)
+    def query_by_id(cls, user_id, key_id):
+        contact_key = ndb.Key(UserModel, user_id, ContactModel, key_id)
         return contact_key.get()
 
 class ContactListAPI(Resource):
     method_decorators = [user_required]
     contact_list_fields = {'contacts': fields.List(fields.Nested(contact_fields))}
-    
+
+    def __init__(self):
+        self.post_parser = parser.copy()
+        self.post_parser.replace_argument('email', type = str,
+                required = True, location = 'json')
+        self.post_parser.replace_argument('phone', type = str,
+                required = True, location = 'json')
+        super(ContactListAPI, self).__init__()
+
     @marshal_with(contact_list_fields)
     def get(self):
         user = current_user()
         contacts = ContactModel.query(ancestor=user.key).fetch()
         return {'contacts': contacts}
+
+    @marshal_with(contact_fields)
+    def post(self):
+        user = current_user()
+        if user is None:
+            abort(404)
+        args = self.post_parser.parse_args()
+        contact = ContactModel(parent=ndb.Key(UserModel, user.key.id()), **args)
+        contact.put()
+        return contact
 
     @marshal_with(contact_list_fields)
     def delete(self):
@@ -58,62 +75,38 @@ class ContactAPI(Resource):
     method_decorators = [user_required]
 
     def __init__(self):
-        self.post_parser = None
-        self.put_parser  = None
+        self.put_parser = parser
         super(ContactAPI, self).__init__()
 
     @marshal_with(contact_fields)
-    def get(self, contact_id):
+    def get(self, key_id):
         user = current_user()
         if user is None:
             abort(403)
-        contact = ContactModel.query_by_id(user.key.id(), contact_id)
+        contact = ContactModel.query_by_id(user.key.id(), key_id)
         if contact is None:
             abort(404)
         return contact
 
     @marshal_with(contact_fields)
-    def post(self, contact_id):
-        if self.post_parser is None:
-            self.post_parser = parser.copy()
-            self.post_parser.replace_argument('email', type = str, required = True, location = 'json')
-            self.post_parser.replace_argument('phone', type = str, required = True, location = 'json')
+    def put(self, key_id):
         user = current_user()
         if user is None:
             abort(404)
-            
-        contact = ContactModel.query_by_id(user.key.id(), contact_id)
-        if contact is not None:
-            abort(409) # Don't allow POST to update Contact values
-        
-        args = self.post_parser.parse_args()
-        args['id'] = contact_id
-        contact = ContactModel(parent=ndb.Key(UserModel, user.key.id()), **args)
-        contact.put()
-        return contact
-
-    @marshal_with(contact_fields)
-    def put(self, contact_id):
-        if self.put_parser is None:
-            self.put_parser = parser.copy()
-            self.put_parser.replace_argument('email', type = str, required = False, location = 'json')
-            self.put_parser.replace_argument('phone', type = str, required = False, location = 'json')
-        user = current_user()
-        if user is None:
-            abort(404)
-        contact = ContactModel.query_by_id(user.key.id(), contact_id)
+        contact = ContactModel.query_by_id(user.key.id(), key_id)
         if contact is None:
             abort(404)
         args = self.put_parser.parse_args()
+        args = {k:v for (k, v) in args.items() if v is not None}  # Remove Nones.
         contact.populate(**args)
         contact.put()
         return contact
 
-    def delete(self, contact_id):
+    def delete(self, key_id):
         user = current_user()
         if user is None:
             abort(404)
-        contact = ContactModel.query_by_id(user.key.id(), contact_id)
+        contact = ContactModel.query_by_id(user.key.id(), key_id)
         if contact is None:
             abort(404)
         contact.key.delete()

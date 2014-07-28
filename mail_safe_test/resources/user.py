@@ -44,6 +44,7 @@ class AdminUserAPI(Resource):
         if not user:
             abort(404)
         args = parser.parse_args()
+        args = {k:v for (k, v) in args.items() if v is not None}  # Remove Nones.
         user.populate(**args)
         user.put()
         return user
@@ -72,8 +73,10 @@ class AdminUserListAPI(Resource):
 
 class UserAPI(Resource):
     def __init__(self):
-        self.post_parser = None
-        self.put_parser  = None
+        self.post_parser = parser.copy()
+        self.post_parser.replace_argument('email', type = str, required = True,
+                                          location = 'json')
+        self.put_parser = parser
         super(UserAPI, self).__init__()
 
     @marshal_with(user_fields)
@@ -84,11 +87,6 @@ class UserAPI(Resource):
 
     @marshal_with(user_fields)
     def post(self):
-        # Define required POST params
-        if self.post_parser is None:
-            self.post_parser = parser.copy()
-            self.post_parser.replace_argument('email', type = str, required = True, location = 'json')
-
         if current_user():
             abort(409)  # Don't create duplicate users.
         jwt = current_user_token_info()
@@ -98,7 +96,9 @@ class UserAPI(Resource):
         args['id'] = jwt['sub']
         # Not sure what email policy to have. Use the authenticated
         # email, or allow arbitrary emails?
-        args['email'] = jwt['email']
+        #args['email'] = jwt['email']
+        if args['email'].count('@') != 1:
+            abort(400)
         user = UserModel(**args)
         user.put()
         return user
@@ -106,13 +106,9 @@ class UserAPI(Resource):
     @marshal_with(user_fields)
     @user_required
     def put(self):
-        # Define required PUT params
-        if self.put_parser is None:
-            self.put_parser  = parser.copy()
-            self.put_parser.replace_argument('email', type = str, required = False, location = 'json')
-
         user = current_user()
         args = self.put_parser.parse_args()
+        args = {k:v for (k, v) in args.items() if v is not None}
         user.populate(**args)
         user.put()
         return user
