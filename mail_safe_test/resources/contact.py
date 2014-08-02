@@ -56,8 +56,6 @@ class ContactListAPI(Resource):
     @marshal_with(contact_fields)
     def post(self):
         user = current_user()
-        if user is None:
-            abort(404)
         args = self.post_parser.parse_args()
         contact = ContactModel(parent=ndb.Key(UserModel, user.key.id()), **args)
         contact.put()
@@ -80,8 +78,6 @@ class ContactAPI(Resource):
     @marshal_with(contact_fields)
     def get(self, key_id):
         user = current_user()
-        if user is None:
-            abort(403)
         contact = ContactModel.query_by_id(user.key.id(), key_id)
         if contact is None:
             abort(404)
@@ -90,8 +86,6 @@ class ContactAPI(Resource):
     @marshal_with(contact_fields)
     def put(self, key_id):
         user = current_user()
-        if user is None:
-            abort(404)
         contact = ContactModel.query_by_id(user.key.id(), key_id)
         if contact is None:
             abort(404)
@@ -103,8 +97,6 @@ class ContactAPI(Resource):
 
     def delete(self, key_id):
         user = current_user()
-        if user is None:
-            abort(404)
         contact = ContactModel.query_by_id(user.key.id(), key_id)
         if contact is None:
             abort(404)

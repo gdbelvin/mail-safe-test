@@ -38,81 +38,85 @@ class NonAuthUserTestCases(TestCase):
             "last_name": "McTest",
             "email": "user@example.com"
         }
+        self.put_data = {"first_name": "Changed"}
+
+        self.verifications = {}
+
+        self.verifications[("GET", "/user/")] = 403
+        self.verifications[("PUT", "/user/")] = 403
+        self.verifications[("POST", "/user/")] = 400
+        self.verifications[("DELETE", "/user/")] = 403
+
+        self.verifications[("GET", "/user/1/")] = 404
+        self.verifications[("PUT", "/user/1/")] = 404
+        self.verifications[("POST", "/user/1/")] = 404
+        self.verifications[("DELETE", "/user/1/")] = 404
+
+        self.verifications[("GET", "/admin/users/")] = 403
+        self.verifications[("PUT", "/admin/users/")] = 405
+        self.verifications[("POST", "/admin/users/")] = 405
+        self.verifications[("DELETE", "/admin/users/")] = 403
 
     def tearDown(self):
         self.testbed.deactivate()
 
-    def test_user_get_no_auth(self):
-        rv = self.app.get('/user/')
-        self.assertEqual(403, rv.status_code)
+    def test_user_no_auth(self):
+        errors=[]
+        for request in self.verifications:
+            method = request[0]
+            url = request[1]
+            response = self.verifications[request]
 
-    def test_user_get_invalid_auth(self):
-        rv = self.app.get('/user/',
-                headers = {'Authorization': 'invalid'})
-        self.assertEqual(403, rv.status_code)
+            if "GET" == method:
+                rv = self.app.get(url)
+                verify_user_count(self, 0)
+            elif "POST" == method:
+                rv = self.app.post(url, data=dumps(self.post_data),
+                                   content_type='application/json')
+                verify_user_count(self, 0)
+            elif "PUT" == method:
+                rv = self.app.put(url, data=dumps(self.put_data),
+                                  content_type='application/json')
+                verify_user_count(self, 0)
+            elif "DELETE" == method:
+                rv = self.app.delete(url)
+                verify_user_count(self, 0)
+            else:
+                self.assertFalse(false, "This HTTP method is unsupported")
 
-    def test_user_id_get_no_auth(self):
-        rv = self.app.get('/user/1/')
-        self.assertEqual(404, rv.status_code)
+            if (response != rv.status_code):
+                errors.append("%s %s returned %d" % (method, url, rv.status_code))
+        self.assertFalse(len(errors) > 0, errors)
 
-    def test_user_id_get_invalid_auth(self):
-        rv = self.app.get('/user/1/',
-                headers = {'Authorization': 'invalid'})
-        self.assertEqual(404, rv.status_code)
-    
-    def test_user_post_no_auth(self):
-        rv = self.app.post('/user/',
-                data=dumps(self.post_data),
-                content_type='application/json')
-        self.assertEqual(400, rv.status_code)
-        verify_user_count(self, 0)
+    def test_user_invalid_auth(self):
+        auth = {'headers': {'Authorization': 'invalid'}}
+        errors=[]
+        for request in self.verifications:
+            method = request[0]
+            url = request[1]
+            response = self.verifications[request]
 
-    def test_user_post_invalid_auth(self):
-        rv = self.app.post('/user/',
-                data=dumps(self.post_data),
-                headers = {'Authorization': 'invalid'})
-        self.assertEqual(400, rv.status_code)
-        verify_user_count(self, 0)
-        
-    def test_user_put_no_auth(self):
-        rv = self.app.put('/user/',
-                data='{"first_name": "Changed"}',
-                content_type='application/json')
-        self.assertEqual(403, rv.status_code)
-        
-    def test_user_put_invalid_auth(self):
-        rv = self.app.put('/user/',
-                data='{"first_name": "Changed"}',
-                content_type='application/json',
-                headers = {'Authorization': 'invalid'})
-        self.assertEqual(403, rv.status_code)
-        
-    def test_user_delete_no_auth(self):
-        rv = self.app.delete('/user/')
-        self.assertEqual(403, rv.status_code)
+            if "GET" == method:
+                rv = self.app.get(url, **auth)
+                verify_user_count(self, 0)
+            elif "POST" == method:
+                rv = self.app.post(url, data=dumps(self.post_data),
+                                   content_type='application/json', **auth)
+                verify_user_count(self, 0)
+            elif "PUT" == method:
+                rv = self.app.put(url, data=dumps(self.put_data),
+                                  content_type='application/json', **auth)
+                verify_user_count(self, 0)
+            elif "DELETE" == method:
+                rv = self.app.delete(url, **auth)
+                verify_user_count(self, 0)
+            else:
+                self.assertFalse(false, "This HTTP method is unsupported")
 
-    def test_user_delete_invalid_auth(self):
-        rv = self.app.delete('/user/',
-                headers = {'Authorization': 'invalid'})
-        self.assertEqual(403, rv.status_code)
+            if (response != rv.status_code):
+                errors.append("%s %s returned %d" % (method, url, rv.status_code))
+        self.assertFalse(len(errors) > 0, errors)
 
-    def test_users_get_no_auth(self):
-        rv = self.app.get('/admin/users/')
-        self.assertEqual(403, rv.status_code)
-
-    def test_users_get_invalid_auth(self):
-        rv = self.app.get('/admin/users/',
-                headers = {'Authorization': 'invalid'})
-        self.assertEqual(403, rv.status_code)
-        
-    def test_users_delete_no_auth(self):
-        rv = self.app.delete('/admin/users/')
-        self.assertEqual(403, rv.status_code)
-
-    def test_users_delete_invalid_auth(self):
-        rv = self.app.delete('/admin/users/',
-            headers = {'Authorization': 'invalid'})
-        self.assertEqual(403, rv.status_code)
 
 class UserAuthUserTestCases(TestCase):
 
@@ -388,6 +392,20 @@ class AdminAuthUserTestCases(TestCase):
         self.assertEqual('Changed', data['first_name'])
         self.assertEqual('McTest', data['last_name'],)
         self.assertEqual('user@example.com', data['email'])
+        verify_user_count(self, 2)
+
+    def test_admin_user_put_all_fields(self):
+        verify_user_count(self, 2)
+        rv = self.app.put('/admin/user/' + self.user_id + '/',
+                data='{"first_name": "Changed", "last_name": "McChange", "email": "changed@example.com"}',
+                content_type='application/json',
+                headers = {'Authorization': self.admin_token})
+        self.assertEqual(200, rv.status_code)
+
+        data = loads(rv.data)
+        self.assertEqual('Changed', data['first_name'])
+        self.assertEqual('McChange', data['last_name'])
+        self.assertEqual('changed@example.com', data['email'])
         verify_user_count(self, 2)
 
     def test_admin_user_put_invalid(self):

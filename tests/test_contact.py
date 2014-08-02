@@ -34,17 +34,16 @@ def setup_users(self):
         self.user2_id = '2'
         self.user2_token = "valid_user2"
 
-        args = {"id": self.user1_id,
-                "first_name": "Testy",
-                "last_name": "McTest",
-                "email": "user@example.com" }
+        args = {
+            "id": self.user1_id,
+            "first_name": "Testy",
+            "last_name": "McTest",
+            "email": "user@example.com"
+        }
         user = UserModel(**args)
         user.put()
 
-        args = {"id": self.user2_id,
-                "first_name": "Testy",
-                "last_name": "McTest",
-                "email": "user@example.com" }
+        args["id"] = self.user2_id
         user = UserModel(**args)
         user.put()
 
@@ -90,29 +89,49 @@ class NonAuthContactTestCases(TestCase):
         common_setUp(self)
         setup_users(self)
         verify_contact_count(self, self.c_num)
-        self.post_data={"first_name": "Best",
-                      "last_name": "Friend",
-                      "email": "bestfriend@test.com",
-                      "phone": "1234567890"}
-        self.put_data={"first_name": "Changed"}
-        self.urls = [
-                ("GET", '/user/contact/12/'),
-                ("GET", '/user/contact/12345/'),
-                ("GET", '/user/contacts/'),
-                ("POST", '/user/contacts/'),
-                ("PUT", '/user/contact/12345/'),
-                ("DELETE", '/user/contact/12345/'),
-                ("DELETE",'/user/contacts/'),
-                ]
+        self.post_data = {
+            "first_name": "Best",
+            "last_name": "Friend",
+            "email": "bestfriend@test.com",
+            "phone": "1234567890"
+        }
+        self.put_data = {"first_name": "Changed"}
+        
+        self.verifications = {}
+
+        self.verifications[("GET", "/user/contact/")] = 404
+        self.verifications[("PUT", "/user/contact/")] = 404
+        self.verifications[("POST", "/user/contact/")] = 404
+        self.verifications[("DELETE", "/user/contact/")] = 404
+
+        self.verifications[("GET", "/user/contact/12/")] = 403
+        self.verifications[("PUT", "/user/contact/12/")] = 403
+        self.verifications[("POST", "/user/contact/12/")] = 405
+        self.verifications[("DELETE", "/user/contact/12/")] = 403
+
+        self.verifications[("GET", "/user/contact/12345/")] = 403
+        self.verifications[("PUT", "/user/contact/12345/")] = 403
+        self.verifications[("POST", "/user/contact/12345/")] = 405
+        self.verifications[("DELETE", "/user/contact/12345/")] = 403
+
+        self.verifications[("GET", '/user/contacts/')] = 403
+        self.verifications[("PUT", '/user/contacts/')] = 405
+        self.verifications[("POST", '/user/contacts/')] = 403
+        self.verifications[("DELETE", '/user/contacts/')] = 403
 
     def tearDown(self):
         self.testbed.deactivate()
 
-    def test_no_auth(self):
+    def test_contact_no_auth(self):
         errors=[]
-        for method, url in self.urls:
+        for request in self.verifications:
+            method = request[0]
+            url = request[1]
+            response = self.verifications[request]
+
             if "GET" == method:
                 rv = self.app.get(url)
+                verify_contact_count(self, self.c_num)
             elif "POST" == method:
                 rv = self.app.post(url, data=dumps(self.post_data),
                                    content_type='application/json')
@@ -120,18 +139,28 @@ class NonAuthContactTestCases(TestCase):
             elif "PUT" == method:
                 rv = self.app.put(url, data=dumps(self.put_data),
                                   content_type='application/json')
+                verify_contact_count(self, self.c_num)
             elif "DELETE" == method:
                 rv = self.app.delete(url)
-            if (403 != rv.status_code):
-                errors.append("%s %s returned %d" % (method, url, rv.status_code))
-        self.assertFalse(len(errors)>0, errors)
+                verify_contact_count(self, self.c_num)
+            else:
+                self.assertFalse(false, "This HTTP method is unsupported")
 
-    def test_get_invalid_auth(self):
+            if (response != rv.status_code):
+                errors.append("%s %s returned %d" % (method, url, rv.status_code))
+        self.assertFalse(len(errors) > 0, errors)
+
+    def test_contact_invalid_auth(self):
         auth = {'headers': {'Authorization': 'invalid'}}
         errors=[]
-        for method, url in self.urls:
+        for request in self.verifications:
+            method = request[0]
+            url = request[1]
+            response = self.verifications[request]
+
             if "GET" == method:
                 rv = self.app.get(url, **auth)
+                verify_contact_count(self, self.c_num)
             elif "POST" == method:
                 rv = self.app.post(url, data=dumps(self.post_data),
                                    content_type='application/json', **auth)
@@ -139,21 +168,28 @@ class NonAuthContactTestCases(TestCase):
             elif "PUT" == method:
                 rv = self.app.put(url, data=dumps(self.put_data),
                                   content_type='application/json', **auth)
+                verify_contact_count(self, self.c_num)
             elif "DELETE" == method:
                 rv = self.app.delete(url, **auth)
-            if (403 != rv.status_code):
-                errors.append("%s %s returned %d" % (method, url, rv.status_code))
-        self.assertFalse(len(errors)>0, errors)
+                verify_contact_count(self, self.c_num)
+            else:
+                self.assertFalse(false, "This HTTP method is unsupported")
 
+            if (response != rv.status_code):
+                errors.append("%s %s returned %d" % (method, url, rv.status_code))
+        self.assertFalse(len(errors) > 0, errors)
+        
 class UserAuthContactTestCases(TestCase):
 
     def setUp(self):
         common_setUp(self)
         setup_users(self)
-        self.post_data={"first_name": "Best",
-                      "last_name": "Friend",
-                      "email": "bestfriend@test.com",
-                      "phone": "1234567890"}
+        self.post_data = {
+            "first_name": "Best",
+            "last_name": "Friend",
+            "email": "bestfriend@test.com",
+            "phone": "1234567890"
+        }
         self.put_data={"first_name": "Changed"}
 
     def tearDown(self):
@@ -161,12 +197,12 @@ class UserAuthContactTestCases(TestCase):
 
     def test_contact_id_none_get(self):
         rv = self.app.get('/user/contact/25/',
-            headers={'Authorization': self.user1_token})
+                headers={'Authorization': self.user1_token})
         self.assertEqual(404, rv.status_code)
 
     def test_contact_id_get(self):
         rv = self.app.get('/user/contact/12345/',
-            headers={'Authorization': self.user1_token})
+                headers={'Authorization': self.user1_token})
         self.assertEqual(200, rv.status_code)
 
         data = loads(rv.data)
@@ -177,19 +213,19 @@ class UserAuthContactTestCases(TestCase):
 
     def test_contact_id_get_other_user(self):
         rv = self.app.get('/user/contact/00000/',
-            headers={'Authorization': self.user1_token})
+                headers={'Authorization': self.user1_token})
         self.assertEqual(404, rv.status_code)
 
         rv = self.app.get('/user/contact/12345/',
-            headers={'Authorization': self.user2_token})
+                headers={'Authorization': self.user2_token})
         self.assertEqual(404, rv.status_code)
 
     def test_contact_id_none_delete(self):
         rv = self.app.delete('/user/contact/25/',
-            headers={'Authorization': self.user1_token})
+                headers={'Authorization': self.user1_token})
         self.assertEqual(404, rv.status_code)
 
-    def test_bad_urls(self):
+    def test_contact_id_post(self):
         rv = self.app.post('/user/contact/00101010/',
                 data=dumps(self.post_data),
                 content_type='application/json',
@@ -213,6 +249,21 @@ class UserAuthContactTestCases(TestCase):
 
         verify_contact_count(self, 3)
         verify_user_contact_count(self, self.user1_id, 2)
+
+    def test_contact_post_duplicate(self):
+        verify_contact_count(self, 2)
+        verify_user_contact_count(self, self.user1_id, 1)
+        rv = self.app.post('/user/contacts/',
+                data=dumps(self.post_data),
+                content_type='application/json',
+                headers = {'Authorization': self.user1_token})
+        # BUG (gdbelvin 8/2/14) - This verification currently fails
+        # because the email address is not required to be unique and
+        # thus the insertion successfully creates a duplicate contact
+        self.assertEqual(409, rv.status_code, "Gary needs to decide if duplicate contacts are allowed")
+
+        verify_contact_count(self, 2)
+        verify_user_contact_count(self, self.user1_id, 1)
 
     def test_contact_post_missing_email(self):
         verify_contact_count(self, self.c_num)
@@ -245,33 +296,43 @@ class UserAuthContactTestCases(TestCase):
 
     def test_contact_put(self):
         rv = self.app.put('/user/contact/12345/',
-            data='{"first_name": "Changed"}',
-            content_type='application/json',
-            headers={'Authorization': self.user1_token})
+                data='{"first_name": "Changed"}',
+                content_type='application/json',
+                headers={'Authorization': self.user1_token})
         self.assertEqual(200, rv.status_code)
 
-        # BUG (gdbelvin 7/26/14): This verification currently fails
-        # because the request parsing code assigns None to all
-        # unspecified request values, updating all entries with None in
-        # the DB.
         data = loads(rv.data)
         self.assertEqual('Changed', data['first_name'])
         self.assertEqual(self.c_lname, data['last_name'])
         self.assertEqual(self.c_email, data['email'])
-        self.assertEqual('1234567890', data['phone'])
+        self.assertEqual(self.c_phone, data['phone'])
+
+    def test_contact_put_all_fields(self):
+        rv = self.app.put('/user/contact/12345/',
+                data='{"first_name": "Changed", "last_name": "McChanged", "email": "changed@example.com", "phone": "0987654321"}',
+                content_type='application/json',
+                headers = {'Authorization': self.user1_token})
+        self.assertEqual(200, rv.status_code)
+        
+        data = loads(rv.data)
+        self.assertEqual('Changed', data['first_name'])
+        self.assertEqual('McChanged', data['last_name'])
+        self.assertEqual('changed@example.com', data['email'])
+        self.assertEqual('0987654321', data['phone'])
+
 
     def test_contact_list_get(self):
         rv = self.app.get('/user/contacts/',
-            headers={'Authorization': self.user1_token})
+                headers={'Authorization': self.user1_token})
         self.assertEqual(200, rv.status_code)
         data = loads(rv.data)
         self.assertEqual(self.c_fname, data['contacts'][0]['first_name'])
         self.assertEqual(self.c_lname, data['contacts'][0]['last_name'])
         self.assertEqual(self.c_email, data['contacts'][0]['email'])
-        self.assertEqual('1234567890', data['contacts'][0]['phone'])
+        self.assertEqual(self.c_phone, data['contacts'][0]['phone'])
 
         rv = self.app.get('/user/contacts/',
-            headers={'Authorization': self.user2_token})
+                headers={'Authorization': self.user2_token})
         self.assertEqual(200, rv.status_code)
         data = loads(rv.data)
         self.assertEqual('First2', data['contacts'][0]['first_name'])
