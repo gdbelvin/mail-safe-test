@@ -18,11 +18,14 @@ contact_fields = {
     'uri': NDBUrl('/user/contact/')
 }
 
-parser = reqparse.RequestParser()
-parser.add_argument('first_name', type = str, location = 'json')
-parser.add_argument('last_name', type = str, location = 'json')
-parser.add_argument('email', type = str, location = 'json')
-parser.add_argument('phone', type = str, location = 'json')
+# Create an instance of a RequestParser with the correct arguments
+def parser(required_email, required_phone):
+    parser = reqparse.RequestParser()
+    parser.add_argument('first_name', type = str, location = 'json')
+    parser.add_argument('last_name', type = str, location = 'json')
+    parser.add_argument('email', type = str, required = required_email, location = 'json')
+    parser.add_argument('phone', type = str, required = required_phone, location = 'json')
+    return parser
 
 class ContactModel(ndb.Model):
     first_name = ndb.StringProperty()
@@ -41,11 +44,7 @@ class ContactListAPI(Resource):
     contact_list_fields = {'contacts': fields.List(fields.Nested(contact_fields))}
 
     def __init__(self):
-        self.post_parser = parser.copy()
-        self.post_parser.replace_argument('email', type = str,
-                required = True, location = 'json')
-        self.post_parser.replace_argument('phone', type = str,
-                required = True, location = 'json')
+        self.post_parser = parser(True, True)
         super(ContactListAPI, self).__init__()
 
     @marshal_with(contact_list_fields)
@@ -75,7 +74,7 @@ class ContactAPI(Resource):
     method_decorators = [user_required]
 
     def __init__(self):
-        self.put_parser = parser
+        self.put_parser = parser(False, False)
         super(ContactAPI, self).__init__()
 
     @marshal_with(contact_fields)
@@ -97,7 +96,7 @@ class ContactAPI(Resource):
         if contact is None:
             abort(404)
         args = self.put_parser.parse_args()
-        args = {k:v for (k, v) in args.items() if v is not None}  # Remove Nones.
+        args = {k:v for (k, v) in args.items() if v is not None}  # Remove empty arguments
         contact.populate(**args)
         contact.put()
         return contact

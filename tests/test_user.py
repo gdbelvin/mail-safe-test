@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-tests.py
+test_user.py
 
 """
 
@@ -17,7 +17,8 @@ def common_setUp(self):
     app.config['TESTING'] = True
     app.config['CSRF_ENABLED'] = False
     self.app = app.test_client()
-    # Setup app engine test bed. See: http://code.google.com/appengine/docs/python/tools/localunittesting.html#Introducing_the_Python_Testing_Utilities
+    # Setup app engine test bed.
+    # See: http://code.google.com/appengine/docs/python/tools/localunittesting.html#Introducing_the_Python_Testing_Utilities
     self.testbed = testbed.Testbed()
     self.testbed.activate()
     self.testbed.init_datastore_v3_stub()
@@ -35,8 +36,8 @@ class NonAuthUserTestCases(TestCase):
         self.post_data = {
             "first_name": "Testy",
             "last_name": "McTest",
-            "email": "user@example.com",
-            }
+            "email": "user@example.com"
+        }
 
     def tearDown(self):
         self.testbed.deactivate()
@@ -125,19 +126,20 @@ class UserAuthUserTestCases(TestCase):
         self.user2_id = '2'
         self.user2_token = "valid_user2"
 
-        args = {"id": self.user_id,
-                "first_name": "Testy",
-                "last_name": "McTest",
-                "email": "user@example.com" }
+        args = {
+            "id": self.user_id,
+            "first_name": "Testy",
+            "last_name": "McTest",
+            "email": "user@example.com"
+        }
         user = UserModel(**args)
         user.put()
 
         self.post_data = {
             "first_name": "Testy",
             "last_name": "McTest",
-            "email": "user@example.com",
-            }
-
+            "email": "user@example.com"
+       }
 
     def tearDown(self):
         self.testbed.deactivate()
@@ -152,7 +154,27 @@ class UserAuthUserTestCases(TestCase):
             headers = {'Authorization': self.user_token})
         self.assertEqual(404, rv.status_code)
 
+    # This test POSTs a unique email address with a unique token
     def test_user_post(self):
+        data = self.post_data.copy()
+        data['email'] = "test@test.com"
+        verify_user_count(self, 1)
+        rv = self.app.post('/user/',
+                data=dumps(data),
+                content_type='application/json',
+                headers = {'Authorization': self.user2_token})
+        self.assertEqual(200, rv.status_code)
+        verify_user_count(self, 2)
+
+        data = loads(rv.data)
+        self.assertEqual(self.post_data['first_name'], data['first_name'])
+        self.assertEqual(self.post_data['last_name'], data['last_name'])
+        self.assertEqual("test@test.com", data['email'])
+        
+    # This test POSTs a duplicate email address with a unique token
+    # NOTE: This shouldn't be possible unless we store the provided
+    # email address but authenticate with a different adress.
+    def test_user_post_duplicate_data(self):
         verify_user_count(self, 1)
         rv = self.app.post('/user/',
                 data=dumps(self.post_data),
@@ -165,8 +187,21 @@ class UserAuthUserTestCases(TestCase):
         self.assertEqual(self.post_data['first_name'], data['first_name'])
         self.assertEqual(self.post_data['last_name'], data['last_name'])
         self.assertEqual(self.post_data['email'], data['email'])
+        
+    # This test POSTs a unique email address with a duplicate token
+    def test_user_post_duplicate_users(self):
+        data = self.post_data.copy()
+        data['email'] = "test@test.com"
+        verify_user_count(self, 1)
+        rv = self.app.post('/user/',
+                data=dumps(data),
+                content_type='application/json',
+                headers = {'Authorization': self.user_token})
+        self.assertEqual(409, rv.status_code)
+        verify_user_count(self, 1)
 
-    def test_user_post_duplicate(self):
+    # This test POSTs a duplicate email address with a duplicate token
+    def test_user_post_duplicate_users(self):
         verify_user_count(self, 1)
         rv = self.app.post('/user/',
                 data=dumps(self.post_data),
@@ -211,6 +246,18 @@ class UserAuthUserTestCases(TestCase):
         self.assertEqual('Changed', data['first_name'])
         self.assertEqual('McTest', data['last_name'])
         self.assertEqual('user@example.com', data['email'])
+    
+    def test_user_put_all_fields(self):
+        rv = self.app.put('/user/',
+            data='{"first_name": "Changed", "last_name": "McChange", "email": "changed@example.com"}',
+            content_type='application/json',
+            headers = {'Authorization': self.user_token})
+        self.assertEqual(200, rv.status_code)
+
+        data = loads(rv.data)
+        self.assertEqual('Changed', data['first_name'])
+        self.assertEqual('McChange', data['last_name'])
+        self.assertEqual('changed@example.com', data['email'])
 
     def test_user_delete(self):
         verify_user_count(self, 1)
@@ -262,14 +309,16 @@ class AdminAuthUserTestCases(TestCase):
         common_setUp(self)
 
         # Provision a valid admin user
-        self.admin_id = "3"
+        self.admin_id = '3'
         self.admin_token = "valid_admin"
 
-        args = {"id": self.admin_id,
-                "first_name": "Admin",
-                "last_name": "McAdmin",
-                "email": "admin@example.com",
-                "admin": True }
+        args = {
+            "id": self.admin_id,
+            "first_name": "Admin",
+            "last_name": "McAdmin",
+            "email": "admin@example.com",
+            "admin": True
+        }
         user = UserModel(**args)
         user.put()
         
@@ -277,10 +326,12 @@ class AdminAuthUserTestCases(TestCase):
         self.user_id = '1'
         self.user_token = "valid_user"
 
-        args = {"id": self.user_id,
-                "first_name": "Testy",
-                "last_name": "McTest",
-                "email": "user@example.com" }
+        args = {
+            "id": self.user_id,
+            "first_name": "Testy",
+            "last_name": "McTest",
+            "email": "user@example.com"
+        }
         user = UserModel(**args)
         user.put()
 

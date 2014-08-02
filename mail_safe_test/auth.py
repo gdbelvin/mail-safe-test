@@ -14,20 +14,20 @@ from oauth2client.crypt import AppIdentityError
 
 if app.config['TESTING']:
     fake_user = {
-                "at_hash": "x_UrBCcmyP2xSki42gqOxw",
-                "aud": app.config.get('GOOGLE_ID'),
-                "azp": app.config.get('GOOGLE_ID'),
-                "cid": app.config.get('GOOGLE_ID'),
-                "email": "user@example.com",
-                "email_verified": True,
-                "exp": 1405154845,
-                "iat": 1405150945,
-                "id": "111111111111111111111",
-                "iss": "accounts.google.com",
-                "sub": "1",
-                "token_hash": "xxxxxxxxxxxxxxxxxxxxxx",
-                "verified_email": True
-            }
+        "at_hash": "x_UrBCcmyP2xSki42gqOxw",
+        "aud": app.config.get('GOOGLE_ID'),
+        "azp": app.config.get('GOOGLE_ID'),
+        "cid": app.config.get('GOOGLE_ID'),
+        "email": "user@example.com",
+        "email_verified": True,
+        "exp": 1405154845,
+        "iat": 1405150945,
+        "id": "111111111111111111111",
+        "iss": "accounts.google.com",
+        "sub": "1",
+        "token_hash": "xxxxxxxxxxxxxxxxxxxxxx",
+        "verified_email": True
+    }
     fake_user2 = fake_user.copy()
     fake_user2["email"] = "user2@example.com"
     fake_user2["sub"] = "2"
@@ -35,10 +35,10 @@ if app.config['TESTING']:
     fake_admin["email"] = "admin@example.com"
     fake_admin["sub"] = "3"
     fake_users = {
-            "valid_user": fake_user,
-            "valid_user2": fake_user2,
-            "valid_admin": fake_admin,
-            }
+        "valid_user": fake_user,
+        "valid_user2": fake_user2,
+        "valid_admin": fake_admin,
+    }
 
 class UserModel(ndb.Model):
     first_name = ndb.StringProperty()
@@ -89,4 +89,3 @@ def admin_required(func):
             abort(403)
         return func(*args, **kwargs)
     return wrapper
-

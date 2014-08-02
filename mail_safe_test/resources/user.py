@@ -22,14 +22,21 @@ user_fields = {
 admin_user_fields = user_fields.copy()
 admin_user_fields['uri'] = NDBUrl('/admin/user/')
 
-parser = reqparse.RequestParser()
-parser.add_argument('first_name', type = str, location = 'json')
-parser.add_argument('last_name', type = str, location = 'json')
-parser.add_argument('email', type = str, location = 'json')
+# Create an instance of a RequestParser with the correct arguments
+def parser(required_email):
+    parser = reqparse.RequestParser()
+    parser.add_argument('first_name', type = str, location = 'json')
+    parser.add_argument('last_name', type = str, location = 'json')
+    parser.add_argument('email', type = str, required = required_email, location = 'json')
+    return parser
 
 class AdminUserAPI(Resource):
     '''GET, PUT, DELETE on _other_ users'''
     method_decorators = [admin_required]
+    
+    def __init__(self):
+        self.put_parser = parser(False)
+        super(AdminUserAPI, self).__init__()
 
     @marshal_with(admin_user_fields)
     def get(self, key_id):
@@ -43,7 +50,7 @@ class AdminUserAPI(Resource):
         user = ndb.Key(UserModel, key_id).get()
         if not user:
             abort(404)
-        args = parser.parse_args()
+        args = self.put_parser.parse_args()
         args = {k:v for (k, v) in args.items() if v is not None}  # Remove Nones.
         user.populate(**args)
         user.put()
@@ -73,10 +80,8 @@ class AdminUserListAPI(Resource):
 
 class UserAPI(Resource):
     def __init__(self):
-        self.post_parser = parser.copy()
-        self.post_parser.replace_argument('email', type = str, required = True,
-                                          location = 'json')
-        self.put_parser = parser
+        self.post_parser = parser(True)
+        self.put_parser = parser(False)
         super(UserAPI, self).__init__()
 
     @marshal_with(user_fields)
@@ -108,7 +113,7 @@ class UserAPI(Resource):
     def put(self):
         user = current_user()
         args = self.put_parser.parse_args()
-        args = {k:v for (k, v) in args.items() if v is not None}
+        args = {k:v for (k, v) in args.items() if v is not None} # Remove empty arguments
         user.populate(**args)
         user.put()
         return user
