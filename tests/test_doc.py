@@ -40,7 +40,6 @@ class AuthUserDocTestCases(TestCase):
                 "email": "test@example.com" }
         user = UserModel(**args)
         user.put()
-        self.auth = {'headers': {'Authorization': self.user_token}}
 
     def tearDown(self):
         self.testbed.deactivate()
@@ -49,6 +48,7 @@ class AuthUserDocTestCases(TestCase):
     def test_doc_create(self):
         rv = self.app.post('/user/docs/',
             data=dumps({"content": "This is my revised testing document."}),
+            content_type='application/json',
             headers={'Authorization': self.user_token}
             )
         self.assertEqual(200, rv.status_code)
@@ -56,6 +56,7 @@ class AuthUserDocTestCases(TestCase):
     def test_doc_none_put(self):
         rv = self.app.put('/user/doc/25/',
             data=dumps({"content": "This is my revised testing document."}),
+            content_type='application/json',
             headers={'Authorization': self.user_token})
         self.assertEqual(404, rv.status_code)
 

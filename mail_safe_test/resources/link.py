@@ -1,6 +1,22 @@
-from flask.ext import restful
-from flask.ext.restful import fields, marshal_with, reqparse
+"""
+link.py
 
-class Link(restful.Resource):
+"""
+
+from flask import request, Response, abort, make_response
+from flask.ext.restful import Resource, fields, marshal_with, reqparse
+from google.appengine.ext import ndb, blobstore
+from mail_safe_test.custom_fields import NDBUrl
+from mail_safe_test.auth import current_user, user_required, admin_required, UserModel
+
+class LinkModel(ndb.Model):
+    doc = ndb.KeyProperty(kind='Doc')
+    user = ndb.KeyProperty(kind='User')
+    clicked = ndb.BooleanProperty()
+    expires = ndb.DateTimeProperty()
+    otp = ndb.StringProperty()
+    otp_expire = ndb.DateTimeProperty()
+
+class Link(Resource):
     def get(self):
         return "hi"
