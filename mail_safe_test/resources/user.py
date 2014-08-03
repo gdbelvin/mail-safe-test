@@ -33,7 +33,7 @@ def parser(required_email):
 class AdminUserAPI(Resource):
     '''GET, PUT, DELETE on _other_ users'''
     method_decorators = [admin_required]
-    
+
     def __init__(self):
         self.put_parser = parser(False)
         super(AdminUserAPI, self).__init__()
