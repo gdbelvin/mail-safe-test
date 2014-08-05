@@ -76,12 +76,12 @@ def setup_users(self):
         self.c_num = 2
 
 def verify_contact_count(self, contact_count):
-    contacts = ContactModel.query().fetch()
-    self.assertEqual(contact_count, len(contacts))
+    num_contacts = ContactModel.query().count()
+    self.assertEqual(contact_count, num_contacts)
 
 def verify_user_contact_count(self, user_id, contact_count):
-    contacts = ContactModel.query(ancestor=ndb.Key(UserModel, user_id)).fetch()
-    self.assertEqual(contact_count, len(contacts))
+    num_contacts = ContactModel.query(ancestor=ndb.Key(UserModel, user_id)).count()
+    self.assertEqual(contact_count, num_contacts)
 
 class NonAuthContactTestCases(TestCase):
 

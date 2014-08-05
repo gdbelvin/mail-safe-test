@@ -10,8 +10,8 @@ from mail_safe_test.custom_fields import NDBUrl
 from mail_safe_test.auth import current_user, user_required, admin_required, UserModel
 
 class LinkModel(ndb.Model):
-    doc = ndb.KeyProperty(kind='Doc')
-    user = ndb.KeyProperty(kind='User')
+    contact = ndb.KeyProperty(kind='ContactModel')
+    doc = ndb.KeyProperty(kind='DocModel')
     clicked = ndb.BooleanProperty()
     expires = ndb.DateTimeProperty()
     otp = ndb.StringProperty()
