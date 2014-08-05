@@ -21,7 +21,7 @@ app.api = restful.Api(app)
 app.api.add_resource(AdminUserAPI, '/admin/user/<string:key_id>/', endpoint='/admin/user/')
 app.api.add_resource(AdminUserListAPI, '/admin/users/', endpoint='/admin/users/')
 
-app.api.add_resource(DocAPI, '/user/doc/<int:key_id>/', endpoint='/user/doc/')
+app.api.add_resource(DocAPI, '/user/doc/<string:key_id>/', endpoint='/user/doc/')
 app.api.add_resource(DocListAPI, '/user/docs/', endpoint='/user/docs/')
 
 # Login requied.
