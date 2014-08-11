@@ -22,6 +22,9 @@ def common_setUp(self):
     self.testbed.init_datastore_v3_stub()
     self.testbed.init_user_stub()
     self.testbed.init_memcache_stub()
+    self.testbed.init_mail_stub()
+    self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
+
 
 class MailTest(TestCase):
     def setUp(self):
@@ -46,9 +49,9 @@ class MailTest(TestCase):
         doc.put()
         self.doc_id = str(doc.key.id())
 
-        contact_args = {'email': 'contact1@test.com',
-                        'phone': '1231231234'}
-        contact = ContactModel(parent=user.key, **contact_args)
+        self.contact_args = {'email': 'contact1@test.com',
+                            'phone': '1231231234'}
+        contact = ContactModel(parent=user.key, **self.contact_args)
         contact.put()
 
     def tearDown(self):
@@ -67,5 +70,11 @@ class MailTest(TestCase):
                 )
         self.assertEqual(200, rv.status_code)
         num_users = 1
+        # Correct number of links
         num_links_after = LinkModel.query().count()
         self.assertEqual(num_links_before + num_users, num_links_after)
+        # Correct number of emails
+        messages = self.mail_stub.get_sent_messages(to=self.contact_args['email'])
+        self.assertEqual(1, len(messages))
+        self.assertEqual(self.contact_args['email'], messages[0].to)
+

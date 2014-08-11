@@ -47,9 +47,9 @@ app.api.add_resource(Mail, '/user/mail/', endpoint='/user/mail')
 # POST to send mail (doc, list/all)
 
 # Login not required.
-app.api.add_resource(Link,     '/auth/<string:link_id>/', endpoint='/auth/')
+app.api.add_resource(Link,     '/auth/<string:key_id>/', endpoint='/auth/')
 # GET sends text message
-app.api.add_resource(Link,     '/link/<string:link_id>', endpoint='/link/')
+app.api.add_resource(Link,     '/link/<string:key_id>', endpoint='/link/')
 # GET - 403's
 # POST with OTP
 # TODO(gdb): support oauth.

@@ -5,3 +5,9 @@ A bad phone number will prevent them from gaining access to their docs.
 * security risks
 
 * Create a way for users to send test messages to themselves
+
+* Allow users to reply securely.
+
+--- Build system ---
+Add requirement for test coverage
+Require code reviews

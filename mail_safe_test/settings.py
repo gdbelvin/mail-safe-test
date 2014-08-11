@@ -18,6 +18,7 @@ class Config(object):
     GOOGLE_SECRET = GOOGLE_SECRET
     # Flask-Cache settings
     CACHE_TYPE = 'gaememcached'
+    # Email settings
     SERVER_EMAIL = 'admin@wisebold.com'
 
 class Development(Config):

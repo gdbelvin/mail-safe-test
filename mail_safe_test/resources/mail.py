@@ -34,24 +34,25 @@ class Mail(Resource):
         for contact in contacts:
             uid = uuid4().get_hex()
             link = LinkModel(id=uid, contact=contact.key, doc=doc.key)
-            future_links += link.put_async()
-            url = url_for(link)
+            future_links.append(link.put_async())
+            url = url_for('/link/', key_id=link.key.id())
             emails += self.generate_email(contact.email, contact.first_name,
-                                          user.email, user.first_name, url)
+                                          user.first_name, url)
 
         for email in emails:
             mail.send_mail(**email)
         for future in future_links:
             future.get_result()  # Make sure the put completed.
+        return {'result': 'sent'}
 
-    def generate_email(self, to_email, to_name, from_email, from_name, link_url):
+    def generate_email(self, to_email, to_name, from_name, link_url):
         subject = "A MailSafe Message From %s" % from_name
         message = """Dear %s,\n
-            have received a message from %s through MailSafe.\n
+            you have received a message from %s through MailSafe.\n
             Please click on the following link to view their message:\n
             %s\n
-            The MailSafe Team""" % (to_name, link_url)
-        from_email = app.config.SERVER_EMAIL
+            The MailSafe Team""" % (to_name, from_name, link_url)
+        from_email = app.config.get('SERVER_EMAIL')
         yield {'sender': from_email,
                'subject': subject,
                'body': message,
