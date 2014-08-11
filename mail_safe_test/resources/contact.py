@@ -38,10 +38,10 @@ class ContactModel(ndb.Model):
     def query_by_id(cls, user_id, key_id):
         contact_key = ndb.Key(UserModel, user_id, ContactModel, key_id)
         return contact_key.get()
+
     @classmethod
     def query_by_owner(cls, user):
         return ContactModel.query(ancestor=user.key).fetch()
-
 
 class ContactListAPI(Resource):
     method_decorators = [user_required]
@@ -68,8 +68,8 @@ class ContactListAPI(Resource):
     @marshal_with(contact_list_fields)
     def delete(self):
         user = current_user()
-        ndb.delete_multi(ContactModel.query(ancestor=user.key).fetch())
-        contacts = ContactModel.query(ancestor=user.key).fetch()
+        ndb.delete_multi(ContactModel.query(ancestor=user.key).fetch(keys_only=True))
+        contacts = ContactModel.query_by_owner(user)
         return {'contacts': contacts}
 
 class ContactAPI(Resource):

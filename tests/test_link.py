@@ -10,7 +10,7 @@ from unittest import TestCase
 from mail_safe_test import app
 from mail_safe_test.auth import UserModel
 from mail_safe_test.resources.contact import ContactModel
-from mail_safe_test.resources.doc import DocModel
+from mail_safe_test.resources.doc import DocModel, DocStatus
 from mail_safe_test.resources.link import LinkModel
 
 def common_setUp(self):
@@ -43,7 +43,7 @@ class MailTest(TestCase):
 
         # Create a doc
         doc_args = {'content': 'Test content',
-                'status': 'sent',
+                    'status': DocStatus.SENT,
                 }
         doc = DocModel(parent=user.key, **doc_args)
         doc.put()
